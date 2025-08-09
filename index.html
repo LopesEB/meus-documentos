@@ -71,86 +71,89 @@
     </div>
 
     <script>
-        // URL para o arquivo PDF "raw" no GitHub. Este link é o correto para buscar os dados do arquivo.
-        const url = 'https://raw.githubusercontent.com/LopesEB/meus-documentos/main/simptoons.pdf';
+        // Adiciona um listener para garantir que o DOM esteja completamente carregado antes de executar o script.
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL para o arquivo PDF "raw" no GitHub. Este link é o correto para buscar os dados do arquivo.
+            const url = 'https://raw.githubusercontent.com/LopesEB/meus-documentos/main/simptoons.pdf';
 
-        // Configurando o worker do PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://mozilla.github.io/pdf.js/build/pdf.worker.js';
+            // Configurando o worker do PDF.js
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://mozilla.github.io/pdf.js/build/pdf.worker.js';
 
-        let pdfDoc = null;
-        let pageNum = 1;
-        let pageRendering = false;
-        let pageNumPending = null;
-        const scale = 1.8; // Aumenta a escala para melhor resolução
-        const canvas = document.getElementById('the-canvas');
-        const ctx = canvas.getContext('2d');
-        const prevButton = document.getElementById('prev');
-        const nextButton = document.getElementById('next');
-        const loadingSpinner = document.getElementById('loading-spinner');
+            let pdfDoc = null;
+            let pageNum = 1;
+            let pageRendering = false;
+            let pageNumPending = null;
+            const scale = 1.8; // Aumenta a escala para melhor resolução
+            const canvas = document.getElementById('the-canvas');
+            const ctx = canvas.getContext('2d');
+            const prevButton = document.getElementById('prev');
+            const nextButton = document.getElementById('next');
+            const loadingSpinner = document.getElementById('loading-spinner');
 
-        function renderPage(num) {
-            pageRendering = true;
-            loadingSpinner.style.display = 'flex'; // Mostra o spinner
+            function renderPage(num) {
+                pageRendering = true;
+                loadingSpinner.style.display = 'flex'; // Mostra o spinner
 
-            pdfDoc.getPage(num).then(function(page) {
-                const viewport = page.getViewport({ scale: scale });
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                pdfDoc.getPage(num).then(function(page) {
+                    const viewport = page.getViewport({ scale: scale });
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
 
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-                const renderTask = page.render(renderContext);
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport
+                    };
+                    const renderTask = page.render(renderContext);
 
-                renderTask.promise.then(function() {
-                    pageRendering = false;
-                    loadingSpinner.style.display = 'none'; // Esconde o spinner
-                    if (pageNumPending !== null) {
-                        renderPage(pageNumPending);
-                        pageNumPending = null;
-                    }
-                    updateButtons();
+                    renderTask.promise.then(function() {
+                        pageRendering = false;
+                        loadingSpinner.style.display = 'none'; // Esconde o spinner
+                        if (pageNumPending !== null) {
+                            renderPage(pageNumPending);
+                            pageNumPending = null;
+                        }
+                        updateButtons();
+                    });
                 });
-            });
 
-            document.getElementById('page_num').textContent = num;
-        }
-
-        function queueRenderPage(num) {
-            if (pageRendering) {
-                pageNumPending = num;
-            } else {
-                renderPage(num);
+                document.getElementById('page_num').textContent = num;
             }
-        }
 
-        function onPrevPage() {
-            if (pageNum <= 1) return;
-            pageNum--;
-            queueRenderPage(pageNum);
-        }
-        prevButton.addEventListener('click', onPrevPage);
+            function queueRenderPage(num) {
+                if (pageRendering) {
+                    pageNumPending = num;
+                } else {
+                    renderPage(num);
+                }
+            }
 
-        function onNextPage() {
-            if (pageNum >= pdfDoc.numPages) return;
-            pageNum++;
-            queueRenderPage(pageNum);
-        }
-        nextButton.addEventListener('click', onNextPage);
-        
-        function updateButtons() {
-            prevButton.disabled = (pageNum <= 1);
-            nextButton.disabled = (pageNum >= pdfDoc.numPages);
-        }
+            function onPrevPage() {
+                if (pageNum <= 1) return;
+                pageNum--;
+                queueRenderPage(pageNum);
+            }
+            prevButton.addEventListener('click', onPrevPage);
 
-        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
-            pdfDoc = pdfDoc_;
-            document.getElementById('page_count').textContent = pdfDoc.numPages;
-            renderPage(pageNum);
-        }).catch(function(error) {
-            console.error('Erro ao carregar o PDF: ', error);
-            loadingSpinner.textContent = 'Falha ao carregar o PDF.';
+            function onNextPage() {
+                if (pageNum >= pdfDoc.numPages) return;
+                pageNum++;
+                queueRenderPage(pageNum);
+            }
+            nextButton.addEventListener('click', onNextPage);
+            
+            function updateButtons() {
+                prevButton.disabled = (pageNum <= 1);
+                nextButton.disabled = (pageNum >= pdfDoc.numPages);
+            }
+
+            pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+                pdfDoc = pdfDoc_;
+                document.getElementById('page_count').textContent = pdfDoc.numPages;
+                renderPage(pageNum);
+            }).catch(function(error) {
+                console.error('Erro ao carregar o PDF: ', error);
+                loadingSpinner.textContent = 'Falha ao carregar o PDF.';
+            });
         });
     </script>
 
